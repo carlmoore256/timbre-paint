@@ -9,6 +9,9 @@ function createAudioContextStore() {
 
     function createFromAudioElement(audioElement: HTMLAudioElement) {
         const audioContext = new AudioContext();
+        if (audioElement.srcObject) {
+            audioElement.srcObject = null;
+        }
         const source = audioContext.createMediaElementSource(audioElement);
         audioSourceStore.set(source);
         source.connect(audioContext.destination);

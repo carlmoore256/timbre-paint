@@ -1,32 +1,71 @@
 // make a global router that can update reactive variables
 import { ModulationDataSource } from "./ModulationDataSource";
 import type { ModulationDataValueRecord } from "./ModulationDataSource";
+import { writable } from "svelte/store";
+
+export const modulationKeysStore = writable<string[]>([]);
 
 export class ModulationDataRouter {
-    private sources: ModulationDataSource[] = [];
+    private sources: Record<string, ModulationDataSource> = {};
+    private keySourceRecord: Record<string, ModulationDataSource> = {};
 
-    public addSource(source: ModulationDataSource) {
-        this.sources.push(source);
-        source.onUpdate = (data) => this.handleSourceUpdate(data);
+    public getKeys(): string[] {
+        return Object.keys(this.keySourceRecord);
     }
 
-    public removeSource(source: ModulationDataSource) {
-        const index = this.sources.indexOf(source);
-        if (index !== -1) {
-            this.sources.splice(index, 1);
+    public addSource(
+        id: string,
+        source: ModulationDataSource,
+        useAsCallback = false
+    ) {
+        if (this.sources[id]) {
+            console.log(`ModulationDataRouter: removing source ${id}`);
+            this.removeSource(id);
         }
+        this.sources[id] = source;
+        for (const key of source.getKeys()) {
+            this.keySourceRecord[key] = source;
+        }
+
+        modulationKeysStore.set(this.getKeys());
     }
 
-    public queryData(key: string): number[] | number[][] | number | null {
-        for (const source of this.sources) {
-            if (source.getKeys().includes(key)) {
-                return source.getValue()[key];
+    public removeSource(id: string) {
+        if (!this.sources[id]) {
+            console.warn(
+                `ModulationDataRouter: source with name ${id} does not exist`
+            );
+            return;
+        }
+        console.log(`ModulationDataRouter: removing source ${id}`);
+        for (const key of this.getKeys()) {
+            if (this.keySourceRecord[key] === this.sources[id]) {
+                delete this.keySourceRecord[key];
+            }
+        }
+        this.sources[id].destroy();
+        delete this.sources[id];
+
+        modulationKeysStore.set(this.getKeys());
+    }
+
+    public getValue(key: string): number | null {
+        // search for the key in cached sources
+        if (this.keySourceRecord[key]) {
+            return this.keySourceRecord[key].getValue(key);
+        }
+        // if not found, search in all sources
+        for (const source of Object.values(this.sources)) {
+            const value = source.getValue(key);
+            if (value !== null) {
+                this.keySourceRecord[key] = source;
+                return value;
             }
         }
         return null;
     }
-
-    private handleSourceUpdate(data: ModulationDataValueRecord) {
-        // Handle or dispatch updated data
-    }
 }
+
+export const modulationDataRouterStore = writable<ModulationDataRouter>(
+    new ModulationDataRouter()
+);

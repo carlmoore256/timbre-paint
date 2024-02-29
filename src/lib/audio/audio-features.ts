@@ -105,9 +105,6 @@ function initializeAnalyzer(
         console.log("selectAudioOutput() not supported.");
     }
 
-    console.log("YPOOOA{SdKAJSHDKJLASHKSDHj");
-    console.log("YOOO");
-
     navigator.mediaDevices.enumerateDevices().then((r) => {
         console.log(r);
     });

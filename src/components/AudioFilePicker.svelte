@@ -34,7 +34,7 @@
     }
 </script>
 
-<div class="absolute bottom-5 right-3">
+<div class="fixed bottom-5 right-3">
     <input
         type="file"
         class="file-input file-input-bordered file-input-primary w-full max-w-xs"

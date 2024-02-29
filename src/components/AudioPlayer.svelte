@@ -1,14 +1,20 @@
 <script lang="ts">
     import Icon from "@iconify/svelte";
 
-    import { isPlayingStore, audioContextStore } from "../lib/stores/audioStore";
+    import {
+        isPlayingStore,
+        audioContextStore,
+    } from "../lib/stores/audioStore";
     import { onMount } from "svelte";
 
     export let audioUrl: string | null = null;
     export let loop = true;
+    export let triggerPlay: string;
 
-    let audio: HTMLAudioElement | null = null;
+    let audioElement: HTMLAudioElement;
     let progressValue = 0;
+
+    $: triggerPlay, playAudio();
 
     onMount(() => {
         // bind spacebar to play/pause
@@ -22,32 +28,30 @@
                 }
             }
         });
-    
-
     });
 
     function playAudio() {
-        if (audio && audioUrl) {
-            audio.play();
+        if (audioElement && audioUrl && $audioContextStore) {
+            audioElement.play();
             $isPlayingStore = true;
             $audioContextStore.resume();
         }
     }
 
     function pauseAudio() {
-        if (audio && audioUrl) {
-            audio.pause();
+        if (audioElement && audioUrl) {
+            audioElement.pause();
             $isPlayingStore = false;
         }
     }
 
     function updateProgress() {
-        if (audio) {
-            if (audio.duration === NaN) {
+        if (audioElement) {
+            if (audioElement.duration === NaN) {
                 progressValue = 0;
                 return;
             }
-            progressValue = (audio.currentTime / audio.duration) * 100;
+            progressValue = (audioElement.currentTime / audioElement.duration) * 100 || 0;
         }
     }
 
@@ -55,14 +59,16 @@
         const progressBar = event.target as HTMLProgressElement;
         const rect = progressBar.getBoundingClientRect();
         const percent = (event.clientX - rect.left) / rect.width;
-        if (audio) {
-            audio.currentTime = percent * audio.duration;
+        if (audioElement) {
+            audioElement.currentTime = percent * audioElement.duration;
         }
     }
 
-    $: if (audio) {
-        audio.ontimeupdate = updateProgress;
-        audioContextStore.createFromAudioElement(audio);
+    $: if (audioElement) {
+        audioElement.ontimeupdate = updateProgress;
+        if (!$audioContextStore) {
+            audioContextStore.createFromAudioElement(audioElement);
+        }
     }
 </script>
 
@@ -80,7 +86,7 @@
         {/if}
     </button>
 
-    <audio bind:this={audio} src={audioUrl} {loop}></audio>
+    <audio bind:this={audioElement} src={audioUrl} {loop}></audio>
     <!-- svelte-ignore a11y-click-events-have-key-events -->
     <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
     <progress

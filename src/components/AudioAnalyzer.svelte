@@ -8,12 +8,11 @@
     import Meyda from "meyda";
     import type { MeydaFeaturesObject } from "meyda";
 
-    const bufferSizeOptions = [
-        64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384,
-    ];
+    const bufferSizeOptions = [256, 512, 1024, 2048, 4096, 8192, 16384];
 
-    export let bufferSize = 512;
-    export let hopRatio = 0.5;
+    export let isAnalyzing = false;
+    export let bufferSize = 1024;
+    export let hopRatio = 0.125;
     export let numMfccCoefficients = 12;
     export let onCreateAnalyzer: (analyzer: MeydaAnalyzer) => void;
     // export let analyzerCallback: (features: Partial<MeydaFeaturesObject>) => void;
@@ -31,8 +30,12 @@
     $: if ($audioContextStore && $audioSourceStore) {
         if (meydaAnalyzer) {
             meydaAnalyzer.stop();
+            meydaAnalyzer._m.callback = null;
             meydaAnalyzer = null;
+            // $audioContextStore.
         }
+
+        console.log(`Creating analyzer with buffer size: ${bufferSize} and hop size: ${hopSize}`)
         meydaAnalyzer = Meyda.createMeydaAnalyzer({
             audioContext: $audioContextStore,
             source: $audioSourceStore,
@@ -48,10 +51,9 @@
             ],
             numberOfMFCCCoefficients: numMfccCoefficients,
         });
+
         onCreateAnalyzer(meydaAnalyzer);
-        // if ($isPlayingStore) {
-        //     meydaAnalyzer.start();
-        // }
+        console.log("created analyzer");
     }
 
     function setBufferSize(event: Event) {
@@ -64,7 +66,7 @@
         hopRatio = parseFloat(range.value) / 8;
     }
 
-    $: if ($isPlayingStore && meydaAnalyzer) {
+    $: if (isAnalyzing && meydaAnalyzer) {
         console.log("starting analyzer");
         meydaAnalyzer.start();
     } else if (meydaAnalyzer) {
