@@ -55,6 +55,7 @@
         }
     }
 
+    
     function initializeSketch() {
         new p5(sketch, canvasContainer);
     }
